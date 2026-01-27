@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Plots and returns
+.pdf
