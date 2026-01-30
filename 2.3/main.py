@@ -44,7 +44,7 @@ h_tend = h_tendency(h_x)
 h_tend = np.pad(h_tend, (1,1))
 
 # %% Time evolution
-TIME_STEPS = 200
+TIME_STEPS = 3000
 
 
 h_time = np.array([h_x[:]]) # axis: 0: time, 1: x; t = 0
@@ -52,7 +52,7 @@ h_time = np.vstack((h_time, h_x[:] + DELTA_T * h_tend)) # t = 1
 
 for i in range(TIME_STEPS - 1):
     h_now = h_time[-1]
-    h_tend = h_tendency(np.concatenate(([0], h_now, [0])))
+    h_tend = h_tendency(np.concatenate(([h_now[-1]], h_now, [h_now[0]])))
     h_old = h_time[-2]
     h_next = h_old + 2 * DELTA_T * h_tend
     h_time = np.vstack((h_time, h_next))
@@ -68,16 +68,15 @@ index = (path.parts.index('NumMet')
          if 'NumMet' in path.parts 
          else path.parts.index('nummet'))
 exercise = path.parts[index+1]
-exercise = exercise.replace('.','_')
 
 # %% Plotting
 
-data = pandas.DataFrame({'x': x,
-                         '0': h_time[0],
-                         '10': h_time[10],
-                         '100': h_time[100],
-                         # '150': h_time[150],
-                         })
+data = {time: h_time[time] for time in range(0, 2880+320, 320)}
+# data = {0: h_time[0],
+#         320: h_time[320],
+#         1600: h_time[1600]}
+data['x'] = x
+data = pandas.DataFrame(data)
 
 data = data.melt(id_vars='x', var_name='Time', value_name='h')
 
@@ -86,6 +85,7 @@ plot = sns.relplot(data=data,
             x='x',
             y='h',
             hue='Time',
+            legend="full",
             kind="line")
 fig = plot.fig.savefig(exercise + '.pdf')
 
