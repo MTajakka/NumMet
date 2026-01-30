@@ -1,15 +1,14 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Jan 27 12:27:43 2026
-
-@author: mktaj
-"""
-
 import numpy as np
-import numpy.typing as npt
 import seaborn as sns
 import pandas
 from pathlib import Path
+from matplotlib import animation
+from matplotlib import pyplot as plt
+
+from physics import (gaussian_distribution, 
+                     height_tendency,
+                     foward_euler_step,
+                     leap_frog_step)
 
 # %% Globals
 
@@ -19,42 +18,31 @@ X_MAX = IDIM * DELTA_X
 DELTA_T = 300 # s
 U = 10 # m s^-1
 
-# %%
-
-def h(x: npt.ArrayLike, 
-      x0: float = X_MAX/2,
-      h0: float = 10, 
-      sigma: float = 100000
-      ) -> np.ndarray:
-    
-    return h0 * np.exp(-np.pow(x-x0, 2) / (2*sigma**2))
-
-
-CEN_DIFF_MASK = 1 / (2) * np.array([-1, 0, 1])
-def central_diff(x: npt.ArrayLike) -> np.ndarray:
-    return np.convolve(x, CEN_DIFF_MASK, mode='valid')
-
-def h_tendency(h: npt.ArrayLike) -> np.ndarray:
-    return -U / DELTA_X * central_diff(h)
-
+# %% Initial setup
 
 x = np.linspace(0, X_MAX, IDIM)
-h_x = h(x)
-h_tend = h_tendency(h_x)
-h_tend = np.pad(h_tend, (1,1))
+h = gaussian_distribution(x, X_MAX/2, 10, 100000)
+h_tend = height_tendency(h, u=U, dx=DELTA_X)
 
 # %% Time evolution
 TIME_STEPS = 3000
 
 
-h_time = np.array([h_x[:]]) # axis: 0: time, 1: x; t = 0
-h_time = np.vstack((h_time, h_x[:] + DELTA_T * h_tend)) # t = 1
+h_time = np.array([h[:]]) # axis: 0: time, 1: x; t = 0
+h_time = np.vstack((h_time, foward_euler_step(h, # t = 1
+                                              dx=DELTA_X,
+                                              dt=DELTA_T,
+                                              u=U,
+                                              cyclic=True)))
 
 for i in range(TIME_STEPS - 1):
     h_now = h_time[-1]
-    h_tend = h_tendency(np.concatenate(([h_now[-1]], h_now, [h_now[0]])))
     h_old = h_time[-2]
-    h_next = h_old + 2 * DELTA_T * h_tend
+    h_next = leap_frog_step(h_now, h_old, 
+                            dx=DELTA_X,
+                            dt=DELTA_T,
+                            u=U,
+                            cyclic=True)
     h_time = np.vstack((h_time, h_next))
 
 
@@ -68,20 +56,21 @@ index = (path.parts.index('NumMet')
          if 'NumMet' in path.parts 
          else path.parts.index('nummet'))
 exercise = path.parts[index+1]
+exercise = exercise.replace('.','_')
 
 # %% Plotting
 
-data = {time: h_time[time] for time in range(0, 2880+320, 320)}
+data_times = {time: h_time[time] for time in range(0, 2880+320, 320)}
 # data = {0: h_time[0],
 #         320: h_time[320],
 #         1600: h_time[1600]}
-data['x'] = x
-data = pandas.DataFrame(data)
+data_times['x'] = x
+data_times = pandas.DataFrame(data_times)
 
-data = data.melt(id_vars='x', var_name='Time', value_name='h')
+data_times = data_times.melt(id_vars='x', var_name='Time', value_name='h')
 
 sns.set_theme()
-plot = sns.relplot(data=data,
+plot = sns.relplot(data=data_times,
             x='x',
             y='h',
             hue='Time',
@@ -89,3 +78,26 @@ plot = sns.relplot(data=data,
             kind="line")
 fig = plot.fig.savefig(exercise + '.pdf')
 
+# %% Animation
+
+fig, ax = plt.subplots()
+
+data_animation = pandas.DataFrame({'x': x,
+                                   'h': h_time[0]})
+plot = sns.lineplot(data=data_animation,
+            x='x',
+            y='h',
+            # kind="line",
+            ax=ax)
+def update(frame):
+    data_animation = pandas.DataFrame({'x': x,
+                                       'h': h_time[frame]})
+    ax.clear()
+    plot = sns.lineplot(data=data_animation,
+                x='x',
+                y='h',
+                # kind="line",
+                ax=ax)
+    
+ani = animation.FuncAnimation(fig, update, frames=300, repeat=False)
+plt.show()
