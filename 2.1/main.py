@@ -5,8 +5,8 @@ import pandas
 from pathlib import Path
 
 import sys
-sys.path.append('..')
-from physics import gaussian_distribution, height_tendency
+sys.path.append('..') # added parent to sys path so the linadv file can be imported
+from linadv import gaussian_distribution, height_tendency
 
 # %% Globals
 
@@ -19,7 +19,7 @@ U = 10 # m s^-1
 # %% Physics
 
 x = np.linspace(0, X_MAX, IDIM)
-h = gaussian_distribution(x, X_MAX/2, 10, 100000)
+h = gaussian_distribution(x, x0=X_MAX/2, h0=10, sigma=100000)
 h_tend = height_tendency(h, u=U, dx=DELTA_X)
 
 # %% Excersise name from parent folder

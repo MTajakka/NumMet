@@ -5,7 +5,9 @@ from pathlib import Path
 from matplotlib import animation
 from matplotlib import pyplot as plt
 
-from physics import (gaussian_distribution, 
+import sys
+sys.path.append('..') # added parent to sys path so the linadv file can be imported
+from linadv import (gaussian_distribution, 
                      height_tendency,
                      foward_euler_step,
                      leap_frog_step)
@@ -14,27 +16,28 @@ from physics import (gaussian_distribution,
 
 IDIM = 99
 DELTA_X = 10000 # m
-X_MAX = IDIM * DELTA_X
+X_MAX = (IDIM-1) * DELTA_X
 DELTA_T = 300 # s
 U = 10 # m s^-1
 
 # %% Initial setup
 
 x = np.linspace(0, X_MAX, IDIM)
-h = gaussian_distribution(x, X_MAX/2, 10, 100000)
+h = gaussian_distribution(x, x0=X_MAX/2, h0=10, sigma=100000)
 h_tend = height_tendency(h, u=U, dx=DELTA_X)
 
 # %% Time evolution
 TIME_STEPS = 3000
 
-
-h_time = np.array([h[:]]) # axis: 0: time, 1: x; t = 0
-h_time = np.vstack((h_time, foward_euler_step(h, # t = 1
+# initial two time steps
+h_time = np.array([h[:]]) # axis: 0: time, 1: x
+h_time = np.vstack((h_time, foward_euler_step(h,
                                               dx=DELTA_X,
                                               dt=DELTA_T,
                                               u=U,
                                               cyclic=True)))
 
+# rest of the time steps
 for i in range(TIME_STEPS - 1):
     h_now = h_time[-1]
     h_old = h_time[-2]
@@ -46,10 +49,10 @@ for i in range(TIME_STEPS - 1):
     h_time = np.vstack((h_time, h_next))
 
 
-# %% Excersise name from parent folder
+# %% Excersise number from parent folder
 ''''
 This is just so I dont have to always rename the plots 
-to correct exercise
+every time I copy paste this
 '''
 path = Path().absolute() 
 index = (path.parts.index('NumMet') 
@@ -81,6 +84,7 @@ fig = plot.fig.savefig(exercise + '.pdf')
 # %% Animation
 
 fig, ax = plt.subplots()
+ax.set_ylim(-0.5, 10.5)
 
 data_animation = pandas.DataFrame({'x': x,
                                    'h': h_time[0]})
@@ -91,13 +95,14 @@ plot = sns.lineplot(data=data_animation,
             ax=ax)
 def update(frame):
     data_animation = pandas.DataFrame({'x': x,
-                                       'h': h_time[frame]})
+                                       'h': h_time[frame*3]})
     ax.clear()
     plot = sns.lineplot(data=data_animation,
                 x='x',
                 y='h',
                 # kind="line",
                 ax=ax)
+    ax.set_ylim(-0.5, 10.5)
     
-ani = animation.FuncAnimation(fig, update, frames=300, repeat=False)
-plt.show()
+ani = animation.FuncAnimation(fig, update, frames=150, repeat=False)
+ani.save('animated_graph.gif', writer='pillow', fps=30, dpi=300)

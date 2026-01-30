@@ -4,8 +4,8 @@ import pandas
 from pathlib import Path
 
 import sys
-sys.path.append('..')
-from physics import (gaussian_distribution, 
+sys.path.append('..') # added parent to sys path so the linadv file can be imported
+from linadv import (gaussian_distribution, 
                      height_tendency,
                      foward_euler_step,
                      leap_frog_step)
@@ -14,14 +14,14 @@ from physics import (gaussian_distribution,
 
 IDIM = 99
 DELTA_X = 10000 # m
-X_MAX = IDIM * DELTA_X
+X_MAX = (IDIM-1) * DELTA_X
 DELTA_T = 300 # s
 U = 10 # m s^-1
 
 # %% Initial setup
 
 x = np.linspace(0, X_MAX, IDIM)
-h = gaussian_distribution(x, X_MAX/2, 10, 100000)
+h = gaussian_distribution(x, x0=X_MAX/2, h0=10, sigma=100000)
 h_tend = height_tendency(h, u=U, dx=DELTA_X)
 
 # %% Time evolution

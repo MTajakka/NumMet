@@ -11,3 +11,13 @@ wheels/
 
 # Plots and returns
 *.pdf
+*.gif
+
+# LaTeX
+*.out
+*.log
+*.fls
+*.fdb_latexmk
+*.aux
+*.synctex.gz
+_minted/

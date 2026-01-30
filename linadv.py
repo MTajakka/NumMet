@@ -1,6 +1,9 @@
 import numpy as np
 import numpy.typing as npt
 
+
+# %% 2.1
+
 def gaussian_distribution(x: npt.ArrayLike, 
       x0: float = 0,
       h0: float = 10, 
@@ -35,6 +38,9 @@ def height_tendency(x: npt.ArrayLike,
                     **kwargs
                     ) -> np.ndarray:
     return -u/dx * central_diff(x, **kwargs)
+
+
+# %% 2.2
 
 def foward_euler_step(x_now: npt.ArrayLike,
                       dt: float=0.1,
