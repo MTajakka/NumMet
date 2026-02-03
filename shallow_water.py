@@ -172,49 +172,76 @@ class ShallowWater:
     def shape(self):
         return self.now.shape
     
+    def _dx(self, field: np.ndarray):
+        df_x = roll_diff(field, axis=self.AXIS_X, cyclic=True)
+        return df_x / self.DX
+    
+    def _dy(self, field: np.ndarray):
+        df_y = roll_diff(field, axis=self.AXIS_Y, cyclic=True)
+        return df_y / self.DY
+    
     def _1D_slope(self):
-        return -self.F / self.G * self.U_MEAN * self.DY
+        return -self.F / self.G * self.U_MEAN
     
     def _zeros(self):
         return np.zeros(self.shape(), dtype='d')
     
-    def _u_tendency(self):
+    def _tendency(self):
         u_tend = self.zeros()
-        
-        du_x = roll_diff(self.now['u'], axis=self.AXIS_X, cyclic=True)
-        u_tend -= self.now['u'] * du_x / self.DX
-        
-        u_tend -= -self.F * self.now['v']
-        
-        dh_x = roll_diff(self.now['h'], axis=self.AXIS_X, cyclic=True)
-        u_tend -= self.G * dh_x / self.DX
-        
-        return u_tend
-        
-    def _v_tendency(self):
         v_tend = self.zeros()
-        
-        dv_x = roll_diff(self.now['v'], axis=self.AXIS_X, cyclic=True)
-        v_tend -= self.now['u'] * dv_x / self.DX
-        
-        v_tend -= self.F * self.now['u']
-        
-        dh_y = self._1D_slope()
-        v_tend -= self.G * dh_y / self.DY
-        
-        return v_tend
-    
-    def _h_tendency(self):
         h_tend = self.zeros()
         
-        dh_x = roll_diff(self.now['h'], axis=self.AXIS_X, cyclic=True)
-        h_tend -= self.now['u'] * dh_x / self.DX
+        du_dx = self._dx(self.now['u'])
+        # du_dy = self._dy(self.now['u'])
         
-        dh_y = self._1D_slope()
-        h_tend -= self.now['v'] * dh_y / self.DY
+        dv_dx = self._dx(self.now['v'])
+        # dv_dy = self._dy(self.now['v'])
         
-    def _tendency(self):
-        pass
+        dh_dx = self._dx(self.now['h'])
+        # dh_dy = self._dy(self.now['h'])
+        dh_dy = self._1D_slope()
+        
+# =============================================================================
+#     def _u_tendency(self):
+#         u_tend = self.zeros()
+#         
+#         du_x = roll_diff(self.now['u'], axis=self.AXIS_X, cyclic=True)
+#         u_tend -= self.now['u'] * du_x / self.DX
+#         
+#         u_tend -= -self.F * self.now['v']
+#         
+#         dh_x = roll_diff(self.now['h'], axis=self.AXIS_X, cyclic=True)
+#         u_tend -= self.G * dh_x / self.DX
+#         
+#         return u_tend
+#         
+#     def _v_tendency(self):
+#         v_tend = self.zeros()
+#         
+#         dv_x = roll_diff(self.now['v'], axis=self.AXIS_X, cyclic=True)
+#         v_tend -= self.now['u'] * dv_x / self.DX
+#         
+#         v_tend -= self.F * self.now['u']
+#         
+#         dh_y = self._1D_slope()
+#         v_tend -= self.G * dh_y / self.DY
+#         
+#         return v_tend
+#     
+#     def _h_tendency(self):
+#         h_tend = self.zeros()
+#         
+#         dh_x = roll_diff(self.now['h'], axis=self.AXIS_X, cyclic=True)
+#         h_tend -= self.now['u'] * dh_x / self.DX
+#         
+#         dh_y = self._1D_slope()
+#         h_tend -= self.now['v'] * dh_y / self.DY
+# =============================================================================
+        
+
+        
+        
+        
         
         
     def euler_step(self):
