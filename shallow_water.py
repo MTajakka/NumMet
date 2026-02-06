@@ -109,8 +109,6 @@ class ShallowWater:
     DX: float
     DY: float
     G: float
-    now: np.ndarray
-    old: np.ndarray
     time: np.ndarray
     AXIS_X: int
     AXIS_Y: int
@@ -138,118 +136,111 @@ class ShallowWater:
         self.U_MEAN = u_mean
         self.G = g
         
-        self.now = np.zeros(h.shape, dtype=[('h','d'), ('u','d'), ('v','d')])
-        self.now['h'] = h
+        now = np.zeros(h.shape, dtype=[('h','d'), ('u','d'), ('v','d')])
+        now['h'] = h
+        self.time = np.array([now])
+        
         self.F = np.zeros_like(h)
         
-        self.N_DIMS = len(np.shape(h))
-        if self.N_DIMS > 2:
-            raise NotImplementedError('There isnt a shallow water model for '
-                                      + 'higer than two dimensions')
+        self.N_DIMS = len(np.shape(h))        
         
         if self.N_DIMS == 1:
             self.AXIS_X = 0,
             self.AXIS_Y = None
-        else:
+        elif self.N_DIMS == 2:
             self.AXIS_X = 1
             self.AXIS_Y = 0
+        else:
+            raise NotImplementedError('There isnt a shallow water model for '
+                                      + 'higer than two dimensions')
         
         if not isinstance(d_dim, Sequence):
-            d_dim = (d_dim) * self.N_DIMS
+            d_dim = (d_dim,) * self.N_DIMS
+            
         if len(d_dim) != self.N_DIMS:
             raise ValueError('Dimensions of d_dim does not match models own')
+            
         self.DX = d_dim[0]
-        self.DY = d_dim[1]
+        self.DY = d_dim[1] if len(d_dim) == 2 else 10
+        
         if not isinstance(cyclic, Sequence):
-            cyclic = (cyclic) * self.N_DIMS
+            cyclic = (cyclic,) * self.N_DIMS
+            
         if len(cyclic) != self.N_DIMS:
             raise ValueError('Dimensions of cyclic does not match models own')
+            
         self.CYCLIC_X = cyclic[0]
-        self.CYCLIC_Y = cyclic[1]
+        self.CYCLIC_Y = cyclic[1] if len(cyclic) == 2 else False
         
-        self.initialize_time()
+        self.euler_step()
     
-    def shape(self):
+    
+    @property
+    def now(self) -> np.ndarray:
+        return self.time[-1]
+    
+    @property
+    def old(self) -> np.ndarray:
+        return self.time[-2]
+    
+    @property
+    def shape(self) -> Tuple[int, ...]:
         return self.now.shape
     
-    def _dx(self, field: np.ndarray):
-        df_x = roll_diff(field, axis=self.AXIS_X, cyclic=True)
+    def _dx(self, field: np.ndarray) -> np.ndarray:
+        df_x = roll_diff(field, axis=self.AXIS_X, cyclic=self.CYCLIC_X)
         return df_x / self.DX
     
-    def _dy(self, field: np.ndarray):
-        df_y = roll_diff(field, axis=self.AXIS_Y, cyclic=True)
+    def _dy(self, field: np.ndarray) -> np.ndarray:
+        df_y = roll_diff(field, axis=self.AXIS_Y, cyclic=self.CYCLIC_Y)
         return df_y / self.DY
     
-    def _1D_slope(self):
+    def _1D_slope(self) -> np.ndarray:
         return -self.F / self.G * self.U_MEAN
     
-    def _zeros(self):
-        return np.zeros(self.shape(), dtype='d')
+    def _zeros(self) -> np.ndarray:
+        return np.zeros(self.shape, dtype='d')
     
-    def _tendency(self):
-        u_tend = self.zeros()
-        v_tend = self.zeros()
-        h_tend = self.zeros()
+    def _tendencies(self) -> np.ndarray:
+        '''
+        I'm calculating all the tendecies in same function, because they 
+        share mutiple derviatives between them
+        '''    
+        # aliases
+        u = self.now['u']
+        v = self.now['v']
+        h = self.now['h']
         
-        du_dx = self._dx(self.now['u'])
-        # du_dy = self._dy(self.now['u'])
+        du_dx = self._dx(u)
+        # du_dy = self._dy(u)
+        du_dy = self._zeros()
         
-        dv_dx = self._dx(self.now['v'])
-        # dv_dy = self._dy(self.now['v'])
+        dv_dx = self._dx(v)
+        # dv_dy = self._dy(v)
+        dv_dy = self._zeros()
         
-        dh_dx = self._dx(self.now['h'])
-        # dh_dy = self._dy(self.now['h'])
-        dh_dy = self._1D_slope()
+        dh_dx = self._dx(h)
+        # dh_dy = self._dy(h)
+        dh_dy = self._1D_slope() # 1D case
         
-# =============================================================================
-#     def _u_tendency(self):
-#         u_tend = self.zeros()
-#         
-#         du_x = roll_diff(self.now['u'], axis=self.AXIS_X, cyclic=True)
-#         u_tend -= self.now['u'] * du_x / self.DX
-#         
-#         u_tend -= -self.F * self.now['v']
-#         
-#         dh_x = roll_diff(self.now['h'], axis=self.AXIS_X, cyclic=True)
-#         u_tend -= self.G * dh_x / self.DX
-#         
-#         return u_tend
-#         
-#     def _v_tendency(self):
-#         v_tend = self.zeros()
-#         
-#         dv_x = roll_diff(self.now['v'], axis=self.AXIS_X, cyclic=True)
-#         v_tend -= self.now['u'] * dv_x / self.DX
-#         
-#         v_tend -= self.F * self.now['u']
-#         
-#         dh_y = self._1D_slope()
-#         v_tend -= self.G * dh_y / self.DY
-#         
-#         return v_tend
-#     
-#     def _h_tendency(self):
-#         h_tend = self.zeros()
-#         
-#         dh_x = roll_diff(self.now['h'], axis=self.AXIS_X, cyclic=True)
-#         h_tend -= self.now['u'] * dh_x / self.DX
-#         
-#         dh_y = self._1D_slope()
-#         h_tend -= self.now['v'] * dh_y / self.DY
-# =============================================================================
+        tendecies = np.zeros_like(self.now)
+        tendecies['u'] -= u*du_dx + v*du_dy - self.F*v + self.G*dh_dx
+        tendecies['v'] -= u*dv_dx + v*dv_dy + self.F*u + self.G*dh_dy
+        tendecies['h'] -= u*dh_dx + v*dh_dy + h*du_dx + h*dv_dy
         
+        return tendecies
 
-        
-        
-        
-        
-        
-    def euler_step(self):
-        pass
     
-    def leap_frog_step(self):
-        pass
+    def _add_new_step(self, fields_new: np.ndarray) -> None:
+        self.time = np.vstack(self.time, fields_new)
+        
+    def euler_step(self) -> None:
+        tendecies = self._tendencies()
+        new_step = self.now + self.DT * tendecies
+        self._add_new_step(new_step)
     
-    def initialize_time(self):
-        self.time = np.array([self.now[:]])
-        self.euler_step()
+    def leap_frog_step(self) -> None:
+        tendecies = self._tendencies()
+        new_step = self.old + 2*self.DT * tendecies
+        self._add_new_step(new_step)
+    
