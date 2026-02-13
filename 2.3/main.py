@@ -83,26 +83,29 @@ fig = plot.fig.savefig(exercise + '.pdf')
 
 # %% Animation
 
-fig, ax = plt.subplots()
-ax.set_ylim(-0.5, 10.5)
-
-data_animation = pandas.DataFrame({'x': x,
-                                   'h': h_time[0]})
-plot = sns.lineplot(data=data_animation,
-            x='x',
-            y='h',
-            # kind="line",
-            ax=ax)
-def update(frame):
-    data_animation = pandas.DataFrame({'x': x,
-                                       'h': h_time[frame*3]})
-    ax.clear()
-    plot = sns.lineplot(data=data_animation,
-                x='x',
-                y='h',
-                # kind="line",
-                ax=ax)
-    ax.set_ylim(-0.5, 10.5)
-    
-ani = animation.FuncAnimation(fig, update, frames=150, repeat=False)
-ani.save('animated_graph.gif', writer='pillow', fps=30, dpi=300)
+# =============================================================================
+# fig, ax = plt.subplots()
+# ax.set_ylim(-0.5, 10.5)
+# 
+# data_animation = pandas.DataFrame({'x': x,
+#                                    'h': h_time[0]})
+# plot = sns.lineplot(data=data_animation,
+#             x='x',
+#             y='h',
+#             # kind="line",
+#             ax=ax)
+# def update(frame):
+#     data_animation = pandas.DataFrame({'x': x,
+#                                        'h': h_time[frame*3]})
+#     ax.clear()
+#     plot = sns.lineplot(data=data_animation,
+#                 x='x',
+#                 y='h',
+#                 # kind="line",
+#                 ax=ax)
+#     ax.set_ylim(-0.5, 10.5)
+#     
+# ani = animation.FuncAnimation(fig, update, frames=150, repeat=False)
+# ani.save('animated_graph.gif', writer='pillow', fps=30, dpi=300)
+# 
+# =============================================================================

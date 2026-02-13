@@ -12,6 +12,7 @@ wheels/
 # Plots and returns
 *.pdf
 *.gif
+*.png
 
 # LaTeX
 *.out
@@ -21,3 +22,8 @@ wheels/
 *.aux
 *.synctex.gz
 _minted/
+*.xdv
+tmp*
+
+# docx
+~$*
