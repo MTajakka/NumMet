@@ -197,8 +197,8 @@ class ShallowWater:
         v = self.now['v'].to_numpy()
         
         du_dx = self._central_diff('u', 'x')
-        # du_dy = self._central_diff('u', 'y')
-        du_dy = self._zeros().to_numpy()
+        du_dy = self._central_diff('u', 'y')
+        # du_dy = self._zeros().to_numpy()
         dh_dx = self._central_diff('h', 'x')
         
         f = self.F.to_numpy()
@@ -212,10 +212,12 @@ class ShallowWater:
         v = self.now['v'].to_numpy()
         
         dv_dx = self._central_diff('v', 'x')
-        # dv_dy = self._central_diff('v', 'y')
-        dv_dy = self._zeros().to_numpy()
-        # dh_dy = self._central_diff('h', 'y')
-        dh_dy = self._1D_slope().to_numpy()
+        dv_dy = self._central_diff('v', 'y')
+        # dv_dy = self._zeros().to_numpy()
+        dh_dy = self._central_diff('h', 'y', boundary=(self.now['h'][{'y':1}], 
+                                                       self.now['h'][{'y':-2}]))
+        # dh_dy = self._central_diff('h', 'y', boundary=self.H_MEAN)
+        # dh_dy = self._1D_slope().to_numpy()
         
         f = self.F.to_numpy()
         g = self.G
@@ -229,11 +231,13 @@ class ShallowWater:
         h = self.now['h'].to_numpy()
         
         du_dx = self._central_diff('u', 'x')
-        # dv_dy = self._central_diff('v', 'y')
-        dv_dy = self._zeros().to_numpy()
+        dv_dy = self._central_diff('v', 'y')
+        # dv_dy = self._zeros().to_numpy()
         dh_dx = self._central_diff('h', 'x')
-        # dh_dy = self._central_diff('h', 'y')
-        dh_dy = self._1D_slope().to_numpy()
+        dh_dy = self._central_diff('h', 'y', boundary=(self.now['h'][{'y':1}], 
+                                                       self.now['h'][{'y':-2}]))
+        # dh_dy = self._central_diff('h', 'y', boundary=self.H_MEAN)
+        # dh_dy = self._1D_slope().to_numpy()
         
         return -(u*dh_dx + v*dh_dy + h*du_dx + h*dv_dy)
     
